@@ -1,5 +1,5 @@
 // src/hooks/useNotifications.js
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 export const useNotifications = () => {
   const [permission, setPermission] = useState(Notification.permission);
@@ -8,7 +8,7 @@ export const useNotifications = () => {
   const notifiedTasksRef = useRef(new Set()); // Traccia i task già notificati
 
   // Richiedi permesso notifiche
-  const requestPermission = async () => {
+  const requestPermission = useCallback(async () => {
     if (!isSupported) {
       console.warn('❌ Notifiche non supportate in questo browser');
       return false;
@@ -23,10 +23,10 @@ export const useNotifications = () => {
       console.error('❌ Errore richiesta permesso notifiche:', error);
       return false;
     }
-  };
+  }, [isSupported]);
 
   // Mostra notifica singola
-  const showNotification = (title, options = {}) => {
+  const showNotification = useCallback((title, options = {}) => {
     if (!isSupported || permission !== 'granted') {
       console.warn('❌ Notifiche non disponibili');
       return null;
@@ -51,10 +51,10 @@ export const useNotifications = () => {
       console.error('❌ Errore creazione notifica:', error);
       return null;
     }
-  };
+  }, [isSupported, permission]);
 
   // Notifica per task in scadenza
-  const notifyTaskDue = (task, list) => {
+  const notifyTaskDue = useCallback((task, list) => {
     const notificationKey = `${task.id}-${task.reminder}`;
 
     // Evita notifiche duplicate
@@ -118,10 +118,10 @@ export const useNotifications = () => {
 
       console.log('🔔 Notifica inviata per task:', task.title);
     }
-  };
+  }, [showNotification]);
 
   // Controlla task in scadenza
-  const checkDueTasks = (lists = []) => {
+  const checkDueTasks = useCallback((lists = []) => {
     if (!isSupported || permission !== 'granted') return;
 
     const now = new Date();
@@ -145,10 +145,10 @@ export const useNotifications = () => {
         }
       });
     });
-  };
+  }, [isSupported, permission, notifyTaskDue]);
 
   // Avvia controllo periodico
-  const startPeriodicCheck = (lists = [], intervalMinutes = 1) => {
+  const startPeriodicCheck = useCallback((lists = [], intervalMinutes = 1) => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
@@ -162,23 +162,23 @@ export const useNotifications = () => {
     }, intervalMinutes * 60 * 1000);
 
     console.log(`🔄 Controllo notifiche avviato (ogni ${intervalMinutes} min)`);
-  };
+  }, [checkDueTasks]);
 
   // Ferma controllo periodico
-  const stopPeriodicCheck = () => {
+  const stopPeriodicCheck = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
       console.log('⏹️ Controllo notifiche fermato');
     }
-  };
+  }, []);
 
   // Pulisci alla smontatura del componente
   useEffect(() => {
     return () => {
       stopPeriodicCheck();
     };
-  }, []);
+  }, [stopPeriodicCheck]);
 
   // Reset notifiche quando cambiano i permessi
   useEffect(() => {
@@ -187,7 +187,11 @@ export const useNotifications = () => {
     }
   }, [permission]);
 
-  return {
+  const clearNotifiedTasks = useCallback(() => {
+    notifiedTasksRef.current.clear();
+  }, []);
+
+  return useMemo(() => ({
     // Stato
     isSupported,
     permission,
@@ -200,8 +204,16 @@ export const useNotifications = () => {
     checkDueTasks,
     startPeriodicCheck,
     stopPeriodicCheck,
-
-    // Utility
-    clearNotifiedTasks: () => notifiedTasksRef.current.clear()
-  };
+    clearNotifiedTasks
+  }), [
+    isSupported,
+    permission,
+    requestPermission,
+    showNotification,
+    notifyTaskDue,
+    checkDueTasks,
+    startPeriodicCheck,
+    stopPeriodicCheck,
+    clearNotifiedTasks
+  ]);
 };

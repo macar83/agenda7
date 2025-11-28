@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Mail, RefreshCw, LogIn, AlertCircle, ExternalLink, Clock, User, Paperclip, Archive, CheckCircle, Star, Filter } from 'lucide-react';
+import { Mail, RefreshCw, LogIn, AlertCircle, ExternalLink, Clock, Paperclip, Archive, CheckCircle, Star, Filter } from 'lucide-react';
 
 export const GmailWidget = ({
   emails = [],
@@ -255,8 +255,8 @@ export const GmailWidget = ({
             onClick={onRefresh}
             disabled={loading}
             className={`p-2 rounded-lg transition-colors ${loading
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
               }`}
             title="Aggiorna email"
           >
@@ -281,8 +281,8 @@ export const GmailWidget = ({
                   key={categoryId}
                   onClick={() => toggleCategory(categoryId)}
                   className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isSelected
-                      ? 'border-2 shadow-sm transform scale-105'
-                      : 'opacity-60 hover:opacity-85 border border-transparent'
+                    ? 'border-2 shadow-sm transform scale-105'
+                    : 'opacity-60 hover:opacity-85 border border-transparent'
                     }`}
                   style={{
                     backgroundColor: categoryInfo.bgColor,
@@ -361,8 +361,8 @@ export const GmailWidget = ({
             <div
               key={email.id}
               className={`border rounded-lg p-3 transition-all hover:shadow-sm cursor-pointer group ${email.isUnread
-                  ? 'bg-blue-50 border-blue-200'
-                  : 'bg-white border-gray-200'
+                ? 'bg-blue-50 border-blue-200'
+                : 'bg-white border-gray-200'
                 }`}
               onClick={() => window.open(`https://mail.google.com/mail/#inbox/${email.threadId}`, '_blank')}
             >
@@ -376,8 +376,8 @@ export const GmailWidget = ({
                         )}
 
                         <span className={`text-sm truncate ${email.isUnread
-                            ? 'font-semibold text-gray-900'
-                            : 'font-medium text-gray-700'
+                          ? 'font-semibold text-gray-900'
+                          : 'font-medium text-gray-700'
                           }`}>
                           {extractSenderName(email.from)}
                         </span>

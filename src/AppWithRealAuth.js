@@ -39,7 +39,8 @@ const AppWithRealAuthContent = () => {
     }
   }, [
     notifications.isEnabled,
-    data.lists
+    data.lists,
+    notifications
   ]);
 
   // 🔔 Handler per test notifica
