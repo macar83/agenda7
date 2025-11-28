@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 
 export const useNotifications = () => {
   const [permission, setPermission] = useState(Notification.permission);
-  const [isSupported, setIsSupported] = useState('Notification' in window);
+  const [isSupported] = useState('Notification' in window);
   const intervalRef = useRef(null);
   const notifiedTasksRef = useRef(new Set()); // Traccia i task già notificati
 
@@ -56,7 +56,7 @@ export const useNotifications = () => {
   // Notifica per task in scadenza
   const notifyTaskDue = (task, list) => {
     const notificationKey = `${task.id}-${task.reminder}`;
-    
+
     // Evita notifiche duplicate
     if (notifiedTasksRef.current.has(notificationKey)) {
       return;
@@ -85,12 +85,12 @@ export const useNotifications = () => {
     if (notification) {
       // Segna come notificato
       notifiedTasksRef.current.add(notificationKey);
-      
+
       // Click sulla notifica
       notification.onclick = () => {
         window.focus();
         notification.close();
-        
+
         // Puoi aggiungere logica per navigare al task
         console.log('🖱️ Notifica cliccata per task:', task.id);
       };
@@ -98,7 +98,7 @@ export const useNotifications = () => {
       // Gestione azioni (se supportate)
       notification.onnotificationclick = (event) => {
         console.log('🎯 Azione notifica:', event.action);
-        
+
         switch (event.action) {
           case 'mark-complete':
             // Logica per completare il task
@@ -108,8 +108,11 @@ export const useNotifications = () => {
             // Logica per posticipare
             console.log('⏰ Richiesta posticipo task:', task.id);
             break;
+          default:
+            console.log('Unknown action:', event.action);
+            break;
         }
-        
+
         notification.close();
       };
 
@@ -130,12 +133,12 @@ export const useNotifications = () => {
       list.tasks.forEach(task => {
         // Salta task già completati
         if (task.completed) return;
-        
+
         // Controlla solo task con reminder
         if (!task.reminder) return;
 
         const reminderTime = new Date(task.reminder);
-        
+
         // Notifica se il reminder è tra ora e i prossimi 5 minuti
         if (reminderTime <= in5Minutes && reminderTime > now) {
           notifyTaskDue(task, list);
@@ -189,7 +192,7 @@ export const useNotifications = () => {
     isSupported,
     permission,
     isEnabled: permission === 'granted',
-    
+
     // Funzioni
     requestPermission,
     showNotification,
@@ -197,7 +200,7 @@ export const useNotifications = () => {
     checkDueTasks,
     startPeriodicCheck,
     stopPeriodicCheck,
-    
+
     // Utility
     clearNotifiedTasks: () => notifiedTasksRef.current.clear()
   };

@@ -4,7 +4,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { realApiClient } from '../../services/realApiClient';
 
 export const Profile = () => {
-    const { data, updateData } = useAppContext();
+    // const { data, updateData } = useAppContext(); // Unused for now
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, CheckCircle2, Circle, Clock, Plus, MoreVertical, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Plus, AlertCircle } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useGoogleCalendar } from '../../hooks/useGoogleCalendar';
 
 export const Planner = () => {
-    const { data, updateTask, createTask, toggleTask } = useAppContext();
+    const { data, createTask, toggleTask } = useAppContext();
     const {
-        events,
-        loading: calendarLoading,
         isAuthenticated: isCalendarAuthenticated,
         signIn: signInCalendar,
         getTodayEvents

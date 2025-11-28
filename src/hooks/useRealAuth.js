@@ -1,7 +1,11 @@
 // src/hooks/useRealAuth.js
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+
+// 🔧 FIX: Verifica token solo se sono passati almeno 5 minuti
+const VERIFY_COOLDOWN = 5 * 60 * 1000; // 5 minuti
+const VERIFY_INTERVAL = 10 * 60 * 1000; // 10 minuti
 
 export const useRealAuth = () => {
   const [authState, setAuthState] = useState({
@@ -17,82 +21,35 @@ export const useRealAuth = () => {
   const lastVerifyTime = useRef(0);
   const verifyInterval = useRef(null);
 
-  // 🔧 FIX: Verifica token solo se sono passati almeno 5 minuti
-  const VERIFY_COOLDOWN = 5 * 60 * 1000; // 5 minuti
-  const VERIFY_INTERVAL = 10 * 60 * 1000; // 10 minuti
+  const clearAuth = useCallback(() => {
+    console.log('🧹 Clearing authentication...');
 
-  // Verifica autenticazione al caricamento
-  useEffect(() => {
-    checkAuthOnLoad();
-
-    // 🔧 FIX: Setup verifiche periodiche meno frequenti
-    const setupPeriodicVerification = () => {
-      // Cancella eventuale interval esistente
-      if (verifyInterval.current) {
-        clearInterval(verifyInterval.current);
-      }
-
-      // Setup nuovo interval solo se autenticato
-      if (authState.isAuthenticated) {
-        verifyInterval.current = setInterval(() => {
-          const now = Date.now();
-          if (now - lastVerifyTime.current > VERIFY_COOLDOWN) {
-            console.log('🔍 Periodic token verification...');
-            verifyTokenWithServer();
-          }
-        }, VERIFY_INTERVAL);
-      }
-    };
-
-    setupPeriodicVerification();
-
-    // Cleanup
-    return () => {
-      if (verifyInterval.current) {
-        clearInterval(verifyInterval.current);
-      }
-    };
-  }, [authState.isAuthenticated]);
-
-  const checkAuthOnLoad = async () => {
-    console.log('🔍 Checking authentication on load...');
-    
-    try {
-      const token = localStorage.getItem('token');
-      const userStr = localStorage.getItem('user');
-      
-      if (!token || !userStr) {
-        console.log('❌ No stored auth data found');
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      
-      // 🔧 FIX: Prima imposta stato locale, poi verifica con server
-      setAuthState({
-        isAuthenticated: true,
-        user,
-        token,
-        isLoading: false,
-        error: null
-      });
-
-      console.log('✅ Local auth restored, will verify with server periodically');
-      
-      // Verifica con server dopo un breve delay per evitare chiamate immediate
-      setTimeout(() => {
-        verifyTokenWithServer();
-      }, 2000);
-
-    } catch (error) {
-      console.error('❌ Auth check error:', error);
-      clearAuth();
+    // Cancella interval di verifica
+    if (verifyInterval.current) {
+      clearInterval(verifyInterval.current);
+      verifyInterval.current = null;
     }
-  };
+
+    // Rimuovi dati locali
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+
+    // Reset stato
+    setAuthState({
+      isAuthenticated: false,
+      user: null,
+      token: null,
+      isLoading: false,
+      error: null
+    });
+
+    // Reset refs
+    isVerifying.current = false;
+    lastVerifyTime.current = 0;
+  }, []);
 
   // 🔧 FIX: Metodo separato per verifica token con server
-  const verifyTokenWithServer = async () => {
+  const verifyTokenWithServer = useCallback(async () => {
     // Evita verifiche multiple simultanee
     if (isVerifying.current) {
       console.log('⏳ Token verification already in progress, skipping...');
@@ -127,7 +84,7 @@ export const useRealAuth = () => {
       if (response.ok) {
         const data = await response.json();
         console.log('✅ Token verified successfully');
-        
+
         // Aggiorna dati utente se necessario
         setAuthState(prev => ({
           ...prev,
@@ -136,7 +93,7 @@ export const useRealAuth = () => {
         }));
       } else {
         console.log('❌ Token verification failed, status:', response.status);
-        
+
         if (response.status === 401) {
           // Token scaduto o invalido
           clearAuth();
@@ -147,7 +104,7 @@ export const useRealAuth = () => {
       }
     } catch (error) {
       console.error('❌ Token verification error:', error);
-      
+
       // Solo se è un errore di rete critico, clear auth
       if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
         console.log('🌐 Network error during verification, keeping local auth');
@@ -156,7 +113,75 @@ export const useRealAuth = () => {
     } finally {
       isVerifying.current = false;
     }
-  };
+  }, [clearAuth]);
+
+  const checkAuthOnLoad = useCallback(async () => {
+    console.log('🔍 Checking authentication on load...');
+
+    try {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+
+      if (!token || !userStr) {
+        console.log('❌ No stored auth data found');
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+
+      // 🔧 FIX: Prima imposta stato locale, poi verifica con server
+      setAuthState({
+        isAuthenticated: true,
+        user,
+        token,
+        isLoading: false,
+        error: null
+      });
+
+      console.log('✅ Local auth restored, will verify with server periodically');
+
+      // Verifica con server dopo un breve delay per evitare chiamate immediate
+      setTimeout(() => {
+        verifyTokenWithServer();
+      }, 2000);
+
+    } catch (error) {
+      console.error('❌ Auth check error:', error);
+      clearAuth();
+    }
+  }, [clearAuth, verifyTokenWithServer]);
+
+  // Verifica autenticazione al caricamento
+  useEffect(() => {
+    checkAuthOnLoad();
+  }, [checkAuthOnLoad]);
+
+  // Setup verifiche periodiche
+  useEffect(() => {
+    // Cancella eventuale interval esistente
+    if (verifyInterval.current) {
+      clearInterval(verifyInterval.current);
+    }
+
+    // Setup nuovo interval solo se autenticato
+    if (authState.isAuthenticated) {
+      verifyInterval.current = setInterval(() => {
+        const now = Date.now();
+        if (now - lastVerifyTime.current > VERIFY_COOLDOWN) {
+          console.log('🔍 Periodic token verification...');
+          verifyTokenWithServer();
+        }
+      }, VERIFY_INTERVAL);
+    }
+
+    // Cleanup
+    return () => {
+      if (verifyInterval.current) {
+        clearInterval(verifyInterval.current);
+      }
+    };
+  }, [authState.isAuthenticated, verifyTokenWithServer]);
 
   const login = async (credentials) => {
     console.log('🔐 Attempting login...');
@@ -175,11 +200,11 @@ export const useRealAuth = () => {
 
       if (response.ok) {
         console.log('✅ Login successful');
-        
+
         // Salva dati di autenticazione
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        
+
         setAuthState({
           isAuthenticated: true,
           user: data.user,
@@ -191,19 +216,19 @@ export const useRealAuth = () => {
         return { success: true, user: data.user };
       } else {
         console.log('❌ Login failed:', data.error);
-        setAuthState(prev => ({ 
-          ...prev, 
-          isLoading: false, 
-          error: data.error || 'Errore durante il login' 
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: data.error || 'Errore durante il login'
         }));
         return { success: false, error: data.error };
       }
     } catch (error) {
       console.error('❌ Login error:', error);
-      setAuthState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: 'Errore di connessione' 
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Errore di connessione'
       }));
       return { success: false, error: 'Errore di connessione' };
     }
@@ -226,11 +251,11 @@ export const useRealAuth = () => {
 
       if (response.ok) {
         console.log('✅ Registration successful');
-        
+
         // Salva dati di autenticazione
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        
+
         setAuthState({
           isAuthenticated: true,
           user: data.user,
@@ -242,19 +267,19 @@ export const useRealAuth = () => {
         return { success: true, user: data.user };
       } else {
         console.log('❌ Registration failed:', data.error);
-        setAuthState(prev => ({ 
-          ...prev, 
-          isLoading: false, 
-          error: data.error || 'Errore durante la registrazione' 
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: data.error || 'Errore durante la registrazione'
         }));
         return { success: false, error: data.error };
       }
     } catch (error) {
       console.error('❌ Registration error:', error);
-      setAuthState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: 'Errore di connessione' 
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Errore di connessione'
       }));
       return { success: false, error: 'Errore di connessione' };
     }
@@ -282,33 +307,6 @@ export const useRealAuth = () => {
 
     clearAuth();
     return { success: true };
-  };
-
-  const clearAuth = () => {
-    console.log('🧹 Clearing authentication...');
-    
-    // Cancella interval di verifica
-    if (verifyInterval.current) {
-      clearInterval(verifyInterval.current);
-      verifyInterval.current = null;
-    }
-
-    // Rimuovi dati locali
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    // Reset stato
-    setAuthState({
-      isAuthenticated: false,
-      user: null,
-      token: null,
-      isLoading: false,
-      error: null
-    });
-    
-    // Reset refs
-    isVerifying.current = false;
-    lastVerifyTime.current = 0;
   };
 
   const clearError = () => {
