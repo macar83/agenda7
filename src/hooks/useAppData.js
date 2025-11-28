@@ -48,17 +48,17 @@ export const useAppData = () => {
   // NUOVO: Setup autenticazione e caricamento dati
   const setupAuthAndLoadData = async () => {
     console.log('🔐 Setting up authentication and loading data...');
-    
+
     // Controlla se abbiamo già un token
     const existingToken = localStorage.getItem('token');
     const existingUser = localStorage.getItem('user');
-    
+
     console.log('🔍 Auth check:', {
       hasToken: !!existingToken,
       hasUser: !!existingUser,
       tokenPreview: existingToken ? existingToken.substring(0, 20) + '...' : 'none'
     });
-    
+
     if (existingToken && existingUser) {
       console.log('✅ Existing auth found, loading data...');
       setData(prev => ({
@@ -75,12 +75,13 @@ export const useAppData = () => {
   // Setup autenticazione mock per debug
   const setupMockAuth = async () => {
     console.log('🔧 Setting up mock authentication...');
-    
+
     try {
       // Prova a registrare un utente di test
       console.log('📝 Attempting to register test user...');
-      
-      const registerResponse = await fetch('http://localhost:5001/api/auth/register', {
+
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+      const registerResponse = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,9 +95,10 @@ export const useAppData = () => {
 
       if (registerResponse.ok || registerResponse.status === 409) {
         console.log('✅ User exists or created, attempting login...');
-        
+
         // Fai login
-        const loginResponse = await fetch('http://localhost:5001/api/auth/login', {
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+        const loginResponse = await fetch(`${apiUrl}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -110,26 +112,26 @@ export const useAppData = () => {
         if (loginResponse.ok) {
           const loginData = await loginResponse.json();
           const token = loginData.token;
-          
+
           console.log('✅ Login successful:', {
             hasToken: !!token,
             tokenPreview: token ? token.substring(0, 20) + '...' : 'none',
             user: loginData.user
           });
-          
+
           // Salva il token
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(loginData.user));
-          
+
           setData(prev => ({
             ...prev,
             user: loginData.user,
             isOnline: true,
             error: null
           }));
-          
+
           console.log('✅ Mock authentication successful, loading data...');
-          
+
           // Ora carica i dati
           loadDataFromDatabase();
         } else {
@@ -153,9 +155,9 @@ export const useAppData = () => {
   const checkApiConnection = async () => {
     console.log('🔌 Verificando connessione API...');
     const result = await api.testConnection();
-    
+
     console.log('🔌 API connection result:', result);
-    
+
     setData(prev => ({
       ...prev,
       isOnline: result.success,
@@ -176,12 +178,12 @@ export const useAppData = () => {
     try {
       // Prova a caricare le liste dal database
       const result = await listsAPI.getAll();
-      
+
       console.log('📥 Lists API result:', result);
-      
+
       if (result.success && result.data?.lists) {
         console.log('✅ Dati caricati dal database:', result.data.lists.length, 'liste');
-        
+
         setData(prev => ({
           ...prev,
           lists: result.data.lists.map(list => ({
@@ -204,7 +206,7 @@ export const useAppData = () => {
       }
     } catch (error) {
       console.log('⚠️ Impossibile caricare dal database, usando dati locali:', error.message);
-      
+
       // Fallback ai dati locali esistenti
       setData(prev => ({
         ...prev,
@@ -222,7 +224,7 @@ export const useAppData = () => {
 
   const createList = async (listData) => {
     console.log('📝 Creating list:', listData);
-    
+
     // Crea ID temporaneo per uso immediato
     const tempId = Date.now();
     const newListLocal = {
@@ -249,20 +251,20 @@ export const useAppData = () => {
       try {
         console.log('💾 Salvando nel database...');
         const result = await listsAPI.create(listData);
-        
+
         if (result.success) {
           // Aggiorna con ID reale dal database
           setData(prev => ({
             ...prev,
-            lists: prev.lists.map(list => 
-              list.id === tempId 
+            lists: prev.lists.map(list =>
+              list.id === tempId
                 ? { ...list, id: result.data.list.id }
                 : list
             ),
             lastSync: new Date().toISOString(),
             error: null
           }));
-          
+
           console.log('✅ Lista salvata nel database con ID:', result.data.list.id);
           return { ...newListLocal, id: result.data.list.id };
         } else {
@@ -270,7 +272,7 @@ export const useAppData = () => {
         }
       } catch (error) {
         console.error('❌ Errore salvataggio database:', error);
-        
+
         // Aggiunge a pending changes per sync futuro
         setData(prev => ({
           ...prev,
@@ -301,16 +303,16 @@ export const useAppData = () => {
 
   const updateList = async (listId, listData) => {
     console.log('✏️ Updating list:', listId, 'with data:', listData);
-    
+
     // Aggiorna subito la UI
     setData(prev => ({
       ...prev,
-      lists: prev.lists.map(list => 
-        list.id === listId 
+      lists: prev.lists.map(list =>
+        list.id === listId
           ? { ...list, name: listData.name, color: listData.color, description: listData.description }
           : list
       ),
-      selectedList: prev.selectedList?.id === listId 
+      selectedList: prev.selectedList?.id === listId
         ? { ...prev.selectedList, name: listData.name, color: listData.color, description: listData.description }
         : prev.selectedList
     }));
@@ -322,21 +324,21 @@ export const useAppData = () => {
       try {
         console.log('💾 Aggiornando nel database...');
         const result = await listsAPI.update(listId, listData);
-        
+
         if (result.success) {
           setData(prev => ({
             ...prev,
             lastSync: new Date().toISOString(),
             error: null
           }));
-          
+
           console.log('✅ Lista aggiornata nel database');
         } else {
           throw new Error(result.error);
         }
       } catch (error) {
         console.error('❌ Errore aggiornamento database:', error);
-        
+
         setData(prev => ({
           ...prev,
           pendingChanges: [...prev.pendingChanges, {
@@ -364,7 +366,7 @@ export const useAppData = () => {
 
   const deleteList = async (listId) => {
     console.log('🗑️ Deleting list:', listId);
-    
+
     // Aggiorna subito la UI
     setData(prev => ({
       ...prev,
@@ -379,21 +381,21 @@ export const useAppData = () => {
       try {
         console.log('💾 Eliminando dal database...');
         const result = await listsAPI.delete(listId);
-        
+
         if (result.success) {
           setData(prev => ({
             ...prev,
             lastSync: new Date().toISOString(),
             error: null
           }));
-          
+
           console.log('✅ Lista eliminata dal database');
         } else {
           throw new Error(result.error);
         }
       } catch (error) {
         console.error('❌ Errore eliminazione database:', error);
-        
+
         setData(prev => ({
           ...prev,
           pendingChanges: [...prev.pendingChanges, {
@@ -419,7 +421,7 @@ export const useAppData = () => {
 
   const loadTasksForList = async (listId) => {
     console.log('📋 Loading tasks for list:', listId);
-    
+
     // Prima cerca nei dati locali
     const localList = data.lists.find(l => l.id === listId);
     if (localList) {
@@ -433,10 +435,10 @@ export const useAppData = () => {
     if (data.isOnline) {
       try {
         const result = await listsAPI.getById(listId);
-        
+
         if (result.success && result.data?.list) {
           const dbList = result.data.list;
-          
+
           setData(prev => ({
             ...prev,
             selectedList: {
@@ -449,18 +451,18 @@ export const useAppData = () => {
               total_tasks: dbList.totalTasks || 0
             },
             // Aggiorna anche nella lista principale
-            lists: prev.lists.map(list => 
-              list.id === listId 
+            lists: prev.lists.map(list =>
+              list.id === listId
                 ? {
-                    ...list,
-                    tasks: dbList.tasks || [],
-                    incomplete_tasks: dbList.incompleteTasks || 0,
-                    total_tasks: dbList.totalTasks || 0
-                  }
+                  ...list,
+                  tasks: dbList.tasks || [],
+                  incomplete_tasks: dbList.incompleteTasks || 0,
+                  total_tasks: dbList.totalTasks || 0
+                }
                 : list
             )
           }));
-          
+
           console.log('✅ Task caricati dal database per lista:', listId);
         }
       } catch (error) {
@@ -474,11 +476,11 @@ export const useAppData = () => {
   const createTask = async (listId, taskData) => {
     console.log('📋 ===== TASK CREATION DEBUG START =====');
     console.log('📋 Creating task:', taskData, 'in list:', listId);
-    
+
     // DEBUG: Verifica autenticazione
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
-    
+
     console.log('🔐 DEBUG - Auth state:', {
       hasToken: !!token,
       tokenLength: token ? token.length : 0,
@@ -488,7 +490,7 @@ export const useAppData = () => {
       isOnline: data.isOnline,
       currentApiUrl: process.env.REACT_APP_API_URL || 'http://localhost:5001/api'
     });
-    
+
     // DEBUG: Verifica parametri
     console.log('📤 DEBUG - Input parameters:', {
       listId: listId,
@@ -499,7 +501,7 @@ export const useAppData = () => {
       details: taskData.details,
       priority: taskData.priority
     });
-    
+
     const tempId = Date.now();
     const newTask = {
       id: tempId,
@@ -529,13 +531,13 @@ export const useAppData = () => {
         return list;
       });
 
-      const updatedSelectedList = prev.selectedList?.id === listId 
+      const updatedSelectedList = prev.selectedList?.id === listId
         ? {
-            ...prev.selectedList,
-            tasks: [...(prev.selectedList.tasks || []), newTask],
-            total_tasks: (prev.selectedList.total_tasks || 0) + 1,
-            incomplete_tasks: (prev.selectedList.incomplete_tasks || 0) + 1
-          }
+          ...prev.selectedList,
+          tasks: [...(prev.selectedList.tasks || []), newTask],
+          total_tasks: (prev.selectedList.total_tasks || 0) + 1,
+          incomplete_tasks: (prev.selectedList.incomplete_tasks || 0) + 1
+        }
         : prev.selectedList;
 
       return {
@@ -552,15 +554,15 @@ export const useAppData = () => {
       try {
         console.log('💾 DEBUG - Starting database save...');
         console.log('📤 DEBUG - Calling tasksAPI.create with:', { listId, taskData });
-        
+
         // IMPORTANTE: Registra l'inizio della chiamata API
         const startTime = Date.now();
-        
+
         const result = await tasksAPI.create(listId, taskData);
-        
+
         const endTime = Date.now();
         const duration = endTime - startTime;
-        
+
         console.log('📥 DEBUG - tasksAPI.create response:', {
           success: result.success,
           duration: duration + 'ms',
@@ -569,34 +571,34 @@ export const useAppData = () => {
           hasTask: !!(result.data && result.data.task),
           taskId: result.data && result.data.task ? result.data.task.id : 'none'
         });
-        
+
         if (result.success) {
           console.log('✅ DEBUG - Task saved successfully');
-          
+
           // Aggiorna con ID reale
           setData(prev => {
-            const updateTaskId = (tasks) => 
-              tasks.map(task => 
-                task.id === tempId 
+            const updateTaskId = (tasks) =>
+              tasks.map(task =>
+                task.id === tempId
                   ? { ...task, id: result.data.task.id }
                   : task
               );
 
             return {
               ...prev,
-              lists: prev.lists.map(list => 
-                list.id === listId 
+              lists: prev.lists.map(list =>
+                list.id === listId
                   ? { ...list, tasks: updateTaskId(list.tasks || []) }
                   : list
               ),
-              selectedList: prev.selectedList?.id === listId 
+              selectedList: prev.selectedList?.id === listId
                 ? { ...prev.selectedList, tasks: updateTaskId(prev.selectedList.tasks || []) }
                 : prev.selectedList,
               lastSync: new Date().toISOString(),
               error: null
             };
           });
-          
+
           console.log('✅ Task salvato nel database con ID:', result.data.task.id);
           console.log('📋 ===== TASK CREATION DEBUG END (SUCCESS) =====');
           return { ...newTask, id: result.data.task.id };
@@ -610,7 +612,7 @@ export const useAppData = () => {
           errorStack: error.stack,
           fullError: error
         });
-        
+
         setData(prev => ({
           ...prev,
           pendingChanges: [...prev.pendingChanges, {
@@ -622,7 +624,7 @@ export const useAppData = () => {
           }],
           error: 'Task creato localmente - Errore DB: ' + error.message
         }));
-        
+
         console.log('📋 ===== TASK CREATION DEBUG END (ERROR) =====');
       }
     } else {
@@ -630,7 +632,7 @@ export const useAppData = () => {
         isOnline: data.isOnline,
         hasToken: !!token
       });
-      
+
       setData(prev => ({
         ...prev,
         pendingChanges: [...prev.pendingChanges, {
@@ -641,7 +643,7 @@ export const useAppData = () => {
           timestamp: new Date().toISOString()
         }]
       }));
-      
+
       console.log('📋 ===== TASK CREATION DEBUG END (OFFLINE) =====');
     }
 
@@ -650,12 +652,12 @@ export const useAppData = () => {
 
   const updateTask = async (listId, taskId, taskData) => {
     console.log('✏️ Updating task:', taskId, 'with data:', taskData);
-    
+
     // Aggiorna subito la UI
     setData(prev => {
-      const updateTaskInList = (tasks) => 
-        tasks.map(task => 
-          task.id === taskId 
+      const updateTaskInList = (tasks) =>
+        tasks.map(task =>
+          task.id === taskId
             ? { ...task, ...taskData, updatedAt: new Date().toISOString() }
             : task
         );
@@ -672,12 +674,12 @@ export const useAppData = () => {
         return list;
       });
 
-      const updatedSelectedList = prev.selectedList?.id === listId 
+      const updatedSelectedList = prev.selectedList?.id === listId
         ? {
-            ...prev.selectedList,
-            tasks: updateTaskInList(prev.selectedList.tasks || []),
-            incomplete_tasks: updateTaskInList(prev.selectedList.tasks || []).filter(t => !t.completed).length
-          }
+          ...prev.selectedList,
+          tasks: updateTaskInList(prev.selectedList.tasks || []),
+          incomplete_tasks: updateTaskInList(prev.selectedList.tasks || []).filter(t => !t.completed).length
+        }
         : prev.selectedList;
 
       return {
@@ -694,21 +696,21 @@ export const useAppData = () => {
       try {
         console.log('💾 Aggiornando task nel database...');
         const result = await tasksAPI.update(taskId, taskData);
-        
+
         if (result.success) {
           setData(prev => ({
             ...prev,
             lastSync: new Date().toISOString(),
             error: null
           }));
-          
+
           console.log('✅ Task aggiornato nel database');
         } else {
           throw new Error(result.error);
         }
       } catch (error) {
         console.error('❌ Errore aggiornamento task:', error);
-        
+
         setData(prev => ({
           ...prev,
           pendingChanges: [...prev.pendingChanges, {
@@ -734,95 +736,95 @@ export const useAppData = () => {
     }
   };
 
-const toggleTask = async (listId, taskId) => {
-  console.log('✅ Toggling task:', taskId);
-  
-  // Trova il task per vedere lo stato attuale
-  let currentTask = null;
-  data.lists.forEach(list => {
-    if (list.id === listId) {
-      currentTask = list.tasks?.find(t => t.id === taskId);
-    }
-  });
+  const toggleTask = async (listId, taskId) => {
+    console.log('✅ Toggling task:', taskId);
 
-  if (!currentTask) {
-    console.error('❌ Task non trovato:', taskId);
-    return;
-  }
-
-  const newCompleted = !currentTask.completed;
-  
-  // Aggiorna nella UI
-  setData(prev => {
-    const updatedLists = prev.lists.map(list => {
+    // Trova il task per vedere lo stato attuale
+    let currentTask = null;
+    data.lists.forEach(list => {
       if (list.id === listId) {
-        const updatedTasks = list.tasks.map(task => {
-          if (task.id === taskId) {
-            return { ...task, completed: newCompleted };
-          }
-          return task;
-        });
-        
-        return {
-          ...list,
-          tasks: updatedTasks,
-          incomplete_tasks: updatedTasks.filter(t => !t.completed).length
-        };
+        currentTask = list.tasks?.find(t => t.id === taskId);
       }
-      return list;
     });
 
-    const updatedSelectedList = prev.selectedList?.id === listId 
-      ? {
+    if (!currentTask) {
+      console.error('❌ Task non trovato:', taskId);
+      return;
+    }
+
+    const newCompleted = !currentTask.completed;
+
+    // Aggiorna nella UI
+    setData(prev => {
+      const updatedLists = prev.lists.map(list => {
+        if (list.id === listId) {
+          const updatedTasks = list.tasks.map(task => {
+            if (task.id === taskId) {
+              return { ...task, completed: newCompleted };
+            }
+            return task;
+          });
+
+          return {
+            ...list,
+            tasks: updatedTasks,
+            incomplete_tasks: updatedTasks.filter(t => !t.completed).length
+          };
+        }
+        return list;
+      });
+
+      const updatedSelectedList = prev.selectedList?.id === listId
+        ? {
           ...prev.selectedList,
-          tasks: prev.selectedList.tasks.map(task => 
+          tasks: prev.selectedList.tasks.map(task =>
             task.id === taskId ? { ...task, completed: newCompleted } : task
           ),
-          incomplete_tasks: prev.selectedList.tasks.filter(t => 
+          incomplete_tasks: prev.selectedList.tasks.filter(t =>
             t.id === taskId ? !newCompleted : !t.completed
           ).length
         }
-      : prev.selectedList;
+        : prev.selectedList;
 
-    return {
-      ...prev,
-      lists: updatedLists,
-      selectedList: updatedSelectedList
-    };
-  });
-
-  // Salva nel database con UPDATE specificando lo stato esatto
-  if (data.isOnline) {
-    try {
-      console.log('💾 Updating task completion in database:', { taskId, completed: newCompleted });
-      
-      const updateData = {
-        completed: newCompleted
+      return {
+        ...prev,
+        lists: updatedLists,
+        selectedList: updatedSelectedList
       };
-      
-      // Aggiungi completedAt se viene completato
-      if (newCompleted) {
-        updateData.completedAt = new Date().toISOString();
-      }
-      
-      const result = await tasksAPI.update(taskId, updateData);
-      
-      if (result.success) {
-        console.log('✅ Task completion updated in database');
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
-      console.error('❌ Errore aggiornamento completion nel database:', error);
-    }
-  }
+    });
 
-  console.log('✅ Task toggled successfully');
-};
+    // Salva nel database con UPDATE specificando lo stato esatto
+    if (data.isOnline) {
+      try {
+        console.log('💾 Updating task completion in database:', { taskId, completed: newCompleted });
+
+        const updateData = {
+          completed: newCompleted
+        };
+
+        // Aggiungi completedAt se viene completato
+        if (newCompleted) {
+          updateData.completedAt = new Date().toISOString();
+        }
+
+        const result = await tasksAPI.update(taskId, updateData);
+
+        if (result.success) {
+          console.log('✅ Task completion updated in database');
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        console.error('❌ Errore aggiornamento completion nel database:', error);
+      }
+    }
+
+    console.log('✅ Task toggled successfully');
+  };
 
   const deleteTask = async (listId, taskId) => {
     console.log('🗑️ Deleting task:', taskId);
-    
+
     // Aggiorna subito la UI
     setData(prev => {
       const removeTaskFromList = (tasks) => tasks.filter(task => task.id !== taskId);
@@ -840,11 +842,11 @@ const toggleTask = async (listId, taskId) => {
         return list;
       });
 
-      const updatedSelectedList = prev.selectedList?.id === listId 
+      const updatedSelectedList = prev.selectedList?.id === listId
         ? {
-            ...prev.selectedList,
-            tasks: removeTaskFromList(prev.selectedList.tasks || [])
-          }
+          ...prev.selectedList,
+          tasks: removeTaskFromList(prev.selectedList.tasks || [])
+        }
         : prev.selectedList;
 
       return {
@@ -861,21 +863,21 @@ const toggleTask = async (listId, taskId) => {
       try {
         console.log('💾 Eliminando task dal database...');
         const result = await tasksAPI.delete(taskId);
-        
+
         if (result.success) {
           setData(prev => ({
             ...prev,
             lastSync: new Date().toISOString(),
             error: null
           }));
-          
+
           console.log('✅ Task eliminato dal database');
         } else {
           throw new Error(result.error);
         }
       } catch (error) {
         console.error('❌ Errore eliminazione task:', error);
-        
+
         setData(prev => ({
           ...prev,
           pendingChanges: [...prev.pendingChanges, {
@@ -906,7 +908,7 @@ const toggleTask = async (listId, taskId) => {
     }
 
     console.log('🔄 Sincronizzando', data.pendingChanges.length, 'modifiche pending...');
-    
+
     let successCount = 0;
     const failedChanges = [];
 
@@ -948,7 +950,7 @@ const toggleTask = async (listId, taskId) => {
       ...prev,
       pendingChanges: failedChanges,
       lastSync: new Date().toISOString(),
-      error: successCount > 0 
+      error: successCount > 0
         ? `${successCount} modifiche sincronizzate${failedChanges.length > 0 ? `, ${failedChanges.length} fallite` : ''}`
         : null
     }));

@@ -4,7 +4,7 @@ import axios from 'axios';
 // Configura axios per inviare cookie
 axios.defaults.withCredentials = true;
 
-const BACKEND_URL = 'http://localhost:5001/api';
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
 export const useGoogleAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
