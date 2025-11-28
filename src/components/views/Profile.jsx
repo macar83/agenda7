@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Save, AlertCircle, Check, Camera } from 'lucide-react';
-import { useAppContext } from '../../contexts/AppContext';
+// import { useAppContext } from '../../contexts/AppContext';
 import { realApiClient } from '../../services/realApiClient';
 
 export const Profile = () => {

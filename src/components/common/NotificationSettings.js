@@ -1,15 +1,15 @@
 // src/components/common/NotificationSettings.jsx
 import React from 'react';
-import { Bell, BellOff, AlertCircle, Check, X } from 'lucide-react';
+import { Bell, AlertCircle, Check, X } from 'lucide-react';
 
-export const NotificationSettings = ({ 
-  isSupported, 
-  permission, 
-  isEnabled, 
+export const NotificationSettings = ({
+  isSupported,
+  permission,
+  isEnabled,
   onRequestPermission,
-  onTestNotification 
+  onTestNotification
 }) => {
-  
+
   const getPermissionStatus = () => {
     if (!isSupported) {
       return {
@@ -61,11 +61,10 @@ export const NotificationSettings = ({
       </div>
 
       {/* Stato attuale */}
-      <div className={`border rounded-lg p-4 ${
-        status.color === 'green' ? 'border-green-200 bg-green-50' :
-        status.color === 'red' ? 'border-red-200 bg-red-50' :
-        'border-yellow-200 bg-yellow-50'
-      }`}>
+      <div className={`border rounded-lg p-4 ${status.color === 'green' ? 'border-green-200 bg-green-50' :
+          status.color === 'red' ? 'border-red-200 bg-red-50' :
+            'border-yellow-200 bg-yellow-50'
+        }`}>
         <div className="flex items-center space-x-3">
           {status.icon}
           <div>

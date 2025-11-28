@@ -4,7 +4,7 @@ import AppContext from '../../contexts/AppContext';
 import { useNewsRSS } from '../../hooks/useNewsRSS';
 
 // 🔧 FIX: Import degli hook con autenticazione persistente
-import { useGoogleAuth } from '../../hooks/useGoogleAuth';
+// import { useGoogleAuth } from '../../hooks/useGoogleAuth';
 import { useGmail } from '../../hooks/useGmail';
 import { useGoogleCalendar } from '../../hooks/useGoogleCalendar';
 
@@ -96,7 +96,7 @@ export const Overview = () => {
   const completedTasks = totalTasks - incompleteTasks;
 
   // 🔧 FIX: Calcola task in scadenza oggi (semplificato per ora)
-  const tasksToday = 0; // Il backend /lists non include task individuali
+  // const tasksToday = 0; // Il backend /lists non include task individuali
 
   // 📅 Calcola eventi di oggi dal calendario
   const todayEvents = getTodayEvents ? getTodayEvents() : [];
