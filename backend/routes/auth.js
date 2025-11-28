@@ -50,6 +50,7 @@ router.post('/register', [
     const result = await runQuery(`
       INSERT INTO users (email, name, password_hash)
       VALUES (?, ?, ?)
+      RETURNING id
     `, [email, name, passwordHash]);
 
     const userId = result.id;
@@ -69,12 +70,14 @@ router.post('/register', [
     await runQuery(`
       INSERT INTO user_sessions (id, user_id, expires_at)
       VALUES (?, ?, ?)
+      RETURNING id
     `, [sessionId, userId, expiresAt.toISOString()]);
 
     // Crea lista di esempio
     await runQuery(`
       INSERT INTO lists (user_id, name, color, description)
       VALUES (?, ?, ?, ?)
+      RETURNING id
     `, [userId, 'I Miei Task', '#3B82F6', 'Lista creata automaticamente per iniziare']);
 
     console.log(`✅ Nuovo utente registrato: ${email}`);
@@ -140,10 +143,10 @@ router.post('/login', [
 
     // Crea token JWT
     const token = jwt.sign(
-      { 
-        userId: user.id, 
-        email: user.email, 
-        name: user.name 
+      {
+        userId: user.id,
+        email: user.email,
+        name: user.name
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
@@ -163,6 +166,7 @@ router.post('/login', [
     await runQuery(`
       INSERT INTO user_sessions (id, user_id, expires_at)
       VALUES (?, ?, ?)
+      RETURNING id
     `, [sessionId, user.id, expiresAt.toISOString()]);
 
     console.log(`✅ Login utente: ${email}`);
@@ -251,10 +255,10 @@ router.post('/google-login', [
 
     // Crea token e sessione
     const token = jwt.sign(
-      { 
-        userId: user.id, 
-        email: user.email, 
-        name: user.name 
+      {
+        userId: user.id,
+        email: user.email,
+        name: user.name
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
@@ -298,7 +302,7 @@ router.post('/google-login', [
 router.post('/logout', authenticateToken, async (req, res) => {
   try {
     const sessionId = req.headers['x-session-id'];
-    
+
     if (sessionId) {
       await runQuery(
         'DELETE FROM user_sessions WHERE id = ?',
@@ -362,10 +366,10 @@ router.post('/refresh', authenticateToken, async (req, res) => {
 
     // Crea nuovo token
     const newToken = jwt.sign(
-      { 
-        userId: user.userId, 
-        email: user.email, 
-        name: user.name 
+      {
+        userId: user.userId,
+        email: user.email,
+        name: user.name
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
@@ -442,10 +446,10 @@ router.delete('/sessions/:sessionId', authenticateToken, async (req, res) => {
 router.post('/revoke-all-sessions', authenticateToken, async (req, res) => {
   try {
     const currentSessionId = req.headers['x-session-id'];
-    
+
     let query = 'DELETE FROM user_sessions WHERE user_id = ?';
     let params = [req.user.userId];
-    
+
     if (currentSessionId) {
       query += ' AND id != ?';
       params.push(currentSessionId);

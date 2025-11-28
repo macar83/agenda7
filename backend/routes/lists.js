@@ -152,6 +152,7 @@ router.post('/', [
     const result = await runQuery(`
       INSERT INTO lists (user_id, name, color, description, position)
       VALUES (?, ?, ?, ?, ?)
+      RETURNING id
     `, [req.user.userId, name, color, description || null, position]);
 
     const newList = await getOne(`

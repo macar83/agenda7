@@ -2,12 +2,12 @@ import React from 'react';
 import { Calendar, Clock, MapPin, Users, ExternalLink, RefreshCw, LogIn, AlertCircle } from 'lucide-react';
 import { CalendarFilterWidget } from './CalendarFilterWidget';
 
-export const CalendarWidget = ({ 
-  events = [], 
-  loading = false, 
-  error = null, 
-  isAuthenticated = false, 
-  onSignIn, 
+export const CalendarWidget = ({
+  events = [],
+  loading = false,
+  error = null,
+  isAuthenticated = false,
+  onSignIn,
   onRefresh,
   // Props per calendari multipli
   availableCalendars = [],
@@ -18,7 +18,7 @@ export const CalendarWidget = ({
   onSelectNoneCalendars,
   onSetCustomCalendarName
 }) => {
-  
+
   // Debug
   console.log('🔧 CalendarWidget debug:', {
     hasOnToggleCalendar: !!onToggleCalendar,
@@ -27,22 +27,22 @@ export const CalendarWidget = ({
     selectedCount: selectedCalendars.length,
     CalendarFilterWidget: typeof CalendarFilterWidget
   });
-  
+
   const formatEventTime = (start, end, allDay) => {
     if (allDay) {
       return 'Tutto il giorno';
     }
-    
+
     const startTime = new Date(start).toLocaleTimeString('it-IT', {
       hour: '2-digit',
       minute: '2-digit'
     });
-    
+
     const endTime = new Date(end).toLocaleTimeString('it-IT', {
       hour: '2-digit',
       minute: '2-digit'
     });
-    
+
     return `${startTime} - ${endTime}`;
   };
 
@@ -51,7 +51,7 @@ export const CalendarWidget = ({
     const today = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
-    
+
     if (date.toDateString() === today.toDateString()) {
       return 'Oggi';
     } else if (date.toDateString() === tomorrow.toDateString()) {
@@ -69,7 +69,7 @@ export const CalendarWidget = ({
     const now = new Date();
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end);
-    
+
     if (now >= eventStart && now <= eventEnd) {
       return 'bg-green-100 border-green-300 text-green-800';
     } else if (eventStart > now) {
@@ -81,9 +81,9 @@ export const CalendarWidget = ({
 
   const getCalendarIndicator = (event) => {
     if (!event.calendarColor) return null;
-    
+
     return (
-      <div 
+      <div
         className="w-3 h-3 rounded-full border border-white shadow-sm flex-shrink-0"
         style={{ backgroundColor: event.calendarColor }}
         title={`Calendario: ${event.calendarName}`}
@@ -101,7 +101,7 @@ export const CalendarWidget = ({
             <span>Calendario Google</span>
           </h3>
         </div>
-        
+
         <div className="text-center py-8">
           <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
           <p className="text-gray-500 mb-4">Accedi a Google Calendar per vedere i tuoi impegni della settimana</p>
@@ -129,7 +129,7 @@ export const CalendarWidget = ({
           <Calendar size={20} className="text-blue-500" />
           <span>Calendario Settimana</span>
         </h3>
-        
+
         <div className="flex items-center space-x-2">
           {/* Filtro calendari */}
           {availableCalendars.length > 0 && (
@@ -143,16 +143,15 @@ export const CalendarWidget = ({
               loading={loadingCalendars}
             />
           )}
-          
+
           {/* Pulsante refresh */}
           <button
             onClick={onRefresh}
             disabled={loading}
-            className={`p-2 rounded-lg transition-colors ${
-              loading 
-                ? 'text-gray-400 cursor-not-allowed' 
+            className={`p-2 rounded-lg transition-colors ${loading
+                ? 'text-gray-400 cursor-not-allowed'
                 : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-            }`}
+              }`}
             title="Aggiorna eventi"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -168,17 +167,16 @@ export const CalendarWidget = ({
             {availableCalendars.map(calendar => {
               const isSelected = selectedCalendars.includes(calendar.id);
               const eventCount = events.filter(e => e.calendarId === calendar.id).length;
-              
+
               return (
                 <div
                   key={calendar.id}
-                  className={`inline-flex items-center space-x-1 px-2 py-1 rounded text-xs transition-colors ${
-                    isSelected 
-                      ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                  className={`inline-flex items-center space-x-1 px-2 py-1 rounded text-xs transition-colors ${isSelected
+                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
                       : 'bg-gray-200 text-gray-600'
-                  }`}
+                    }`}
                 >
-                  <div 
+                  <div
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: calendar.backgroundColor }}
                   />
@@ -205,7 +203,7 @@ export const CalendarWidget = ({
         <div className="text-center py-8">
           <AlertCircle className="mx-auto text-red-400 mb-4" size={32} />
           <p className="text-red-600 text-sm mb-2 font-medium">Errore nel caricamento</p>
-          <p className="text-gray-500 text-xs mb-4">{error}</p>
+          <p className="text-gray-500 text-xs mb-4">{typeof error === 'object' ? (error.message || 'Errore sconosciuto') : error}</p>
           <button
             onClick={onRefresh}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors"
@@ -228,19 +226,19 @@ export const CalendarWidget = ({
       ) : (
         <div className="space-y-3 max-h-80 overflow-y-auto">
           {events.map((event) => (
-            <div 
+            <div
               key={`${event.calendarId}-${event.id}`}
               className={`border rounded-lg p-4 transition-all hover:shadow-sm ${getEventStatusColor(event)}`}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-start space-x-2 flex-1 min-w-0">
                   {getCalendarIndicator(event)}
-                  
+
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-sm leading-tight pr-2">
                       {event.title}
                     </h4>
-                    
+
                     {event.calendarName && event.calendarName !== 'primary' && (
                       <p className="text-xs text-gray-500 mt-1">
                         📅 {event.calendarName}
@@ -248,7 +246,7 @@ export const CalendarWidget = ({
                     )}
                   </div>
                 </div>
-                
+
                 {event.htmlLink && (
                   <a
                     href={event.htmlLink}
@@ -267,7 +265,7 @@ export const CalendarWidget = ({
                   <Calendar size={12} />
                   <span>{formatEventDate(event.start)}</span>
                 </div>
-                
+
                 <div className="flex items-center space-x-2 text-xs">
                   <Clock size={12} />
                   <span>{formatEventTime(event.start, event.end, event.allDay)}</span>

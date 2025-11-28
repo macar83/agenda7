@@ -15,13 +15,13 @@ import { GmailWidget } from '../common/GmailWidget';
 export const Overview = () => {
   const { data, updateData } = useContext(AppContext);
   const { news, loading: newsLoading, error: newsError, sources } = useNewsRSS(data.selectedRssSource);
-  
+
   // 🔧 FIX: Usa direttamente gli hook Google con persistenza
   // Hook Google Calendar con calendari multipli
-  const { 
-    events, 
-    loading: calendarLoading, 
-    error: calendarError, 
+  const {
+    events,
+    loading: calendarLoading,
+    error: calendarError,
     isAuthenticated: isCalendarAuthenticated,
     signIn: signInCalendar,
     refreshEvents,
@@ -72,9 +72,9 @@ export const Overview = () => {
   // 🔧 FIX: Controllo di sicurezza robusto per evitare errori con data.lists
   console.log('🔍 Overview Debug - data object:', data);
   console.log('🔍 Overview Debug - data.lists:', data.lists, 'type:', typeof data.lists);
-  
+
   const lists = Array.isArray(data.lists) ? data.lists : [];
-  
+
   // 🔧 FIX: Debug per verificare struttura dati
   console.log('🔍 Overview Lists Full Debug:', {
     listsCount: lists.length,
@@ -117,9 +117,9 @@ export const Overview = () => {
   // Gestione click su liste  
   const handleListClick = (list) => {
     console.log('📋 Clicking on list:', list.name);
-    updateData({ 
+    updateData({
       currentView: 'lists',
-      selectedList: list 
+      selectedList: list
     });
   };
 
@@ -194,14 +194,14 @@ export const Overview = () => {
 
       {/* Contenuto principale con layout a griglia - 3 colonne */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        
+
         {/* Quick Lists */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
             <Calendar size={20} className="text-blue-500" />
             <span>Le Tue Liste</span>
           </h3>
-          
+
           {lists.length === 0 ? (
             <div className="text-center py-6">
               <Calendar className="mx-auto text-gray-400 mb-3" size={32} />
@@ -226,7 +226,7 @@ export const Overview = () => {
                   incompleteTasks: list.incompleteTasks,
                   incomplete_tasks: list.incomplete_tasks
                 });
-                
+
                 return (
                   <button
                     key={list.id}
@@ -234,7 +234,7 @@ export const Overview = () => {
                     className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border transition-colors text-left"
                   >
                     <div className="flex items-center space-x-3">
-                      <div 
+                      <div
                         className="w-3 h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: list.color || '#3B82F6' }}
                       />
@@ -253,7 +253,7 @@ export const Overview = () => {
                   </button>
                 );
               })}
-              
+
               {lists.length > 4 && (
                 <button
                   onClick={() => updateData({ currentView: 'lists' })}
@@ -308,7 +308,7 @@ export const Overview = () => {
             <Rss size={20} className="text-orange-500" />
             <span>Ultime Notizie</span>
           </h3>
-          
+
           <RSSSourceSelector
             sources={sources}
             selectedSourceId={data.selectedRssSource}
@@ -327,7 +327,7 @@ export const Overview = () => {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center space-x-2">
               <AlertCircle className="text-red-500" size={16} />
-              <p className="text-red-700 text-sm">{newsError}</p>
+              <p className="text-red-700 text-sm">{typeof newsError === 'object' ? (newsError.message || 'Errore sconosciuto') : newsError}</p>
             </div>
           </div>
         )}

@@ -8,6 +8,7 @@ require('dotenv').config();
 
 const { initDatabase } = require('./config/database');
 const authRoutes = require('./routes/auth');
+const googleAuthRoutes = require('./routes/googleAuth'); // Nuova rotta
 const userRoutes = require('./routes/users');
 const listRoutes = require('./routes/lists');
 const taskRoutes = require('./routes/tasks');
@@ -69,25 +70,42 @@ app.use('/api/auth/verify', authVerifyLimiter);
 app.use(compression());
 app.use(morgan('combined'));
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.FRONTEND_URL
     : ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true
 }));
 
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
+
+// Configurazione Sessione
+app.use(session({
+  secret: process.env.JWT_SECRET || 'super_secret_key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // true in prod (https)
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 giorni
+  }
+}));
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version || '1.0.0'
   });
 });
 
 // Routes API
+app.use('/api/auth/google', googleAuthRoutes); // Nuova rotta
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/lists', listRoutes);
@@ -107,10 +125,10 @@ app.use('/api/*', (req, res) => {
 // Middleware per gestire errori globali
 app.use((err, req, res, next) => {
   console.error('❌ Server Error:', err);
-  
+
   // Non esporre dettagli errori in produzione
   const isDevelopment = process.env.NODE_ENV !== 'production';
-  
+
   res.status(err.status || 500).json({
     error: isDevelopment ? err.message : 'Errore interno del server',
     stack: isDevelopment ? err.stack : undefined
@@ -123,7 +141,7 @@ const startServer = async () => {
     console.log('🔧 Initializing database...');
     await initDatabase();
     console.log('✅ Database initialized');
-    
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🔗 Database connection established`);

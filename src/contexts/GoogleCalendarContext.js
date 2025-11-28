@@ -1,17 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useGoogleAuth } from '../hooks/useGoogleAuth';
 
-// Configurazione Google Calendar API
+const GoogleCalendarContext = createContext(null);
+
 const GOOGLE_API_KEY = process.env.REACT_APP_GOOGLE_API_KEY;
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
 
-export const useGoogleCalendar = () => {
+export const GoogleCalendarProvider = ({ children }) => {
     const queryClient = useQueryClient();
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [gapi, setGapi] = useState(null);
-    const [tokenClient, setTokenClient] = useState(null);
+    const { isAuthenticated, accessToken, login, logout, loading: authLoading } = useGoogleAuth();
+    const [gapiReady, setGapiReady] = useState(false);
 
     // PERSISTENZA: Carica stato iniziale da localStorage
     const [selectedCalendars, setSelectedCalendars] = useState(() => {
@@ -19,7 +18,6 @@ export const useGoogleCalendar = () => {
             const saved = localStorage.getItem('agenda_selected_calendars');
             return saved ? JSON.parse(saved) : ['primary'];
         } catch (e) {
-            console.error('Error parsing selected calendars from localStorage', e);
             return ['primary'];
         }
     });
@@ -29,12 +27,10 @@ export const useGoogleCalendar = () => {
             const saved = localStorage.getItem('agenda_custom_calendar_names');
             return saved ? JSON.parse(saved) : {};
         } catch (e) {
-            console.error('Error parsing custom names from localStorage', e);
             return {};
         }
     });
 
-    // Salva su localStorage quando cambia
     useEffect(() => {
         localStorage.setItem('agenda_selected_calendars', JSON.stringify(selectedCalendars));
     }, [selectedCalendars]);
@@ -43,11 +39,10 @@ export const useGoogleCalendar = () => {
         localStorage.setItem('agenda_custom_calendar_names', JSON.stringify(customNames));
     }, [customNames]);
 
-    // INIT GAPI & GIS
+    // INIT GAPI (Solo caricamento libreria e client)
     useEffect(() => {
-        const init = async () => {
-            if (!GOOGLE_API_KEY || !GOOGLE_CLIENT_ID) return;
-
+        const initGapi = async () => {
+            if (!GOOGLE_API_KEY) return;
             try {
                 if (!window.gapi) {
                     await new Promise((resolve) => {
@@ -58,70 +53,55 @@ export const useGoogleCalendar = () => {
                     });
                 }
 
-                if (!window.google?.accounts?.oauth2) {
-                    await new Promise((resolve) => {
-                        const script = document.createElement('script');
-                        script.src = 'https://accounts.google.com/gsi/client';
-                        script.onload = resolve;
-                        document.body.appendChild(script);
-                    });
-                }
-
                 await new Promise(resolve => window.gapi.load('client', resolve));
                 await window.gapi.client.init({
                     apiKey: GOOGLE_API_KEY,
                     discoveryDocs: [DISCOVERY_DOC],
                 });
-                setGapi(window.gapi);
-
-                const client = window.google.accounts.oauth2.initTokenClient({
-                    client_id: GOOGLE_CLIENT_ID,
-                    scope: SCOPES,
-                    callback: (response) => {
-                        if (response.access_token) {
-                            setIsAuthenticated(true);
-                            queryClient.invalidateQueries(['calendar']);
-                        }
-                    },
-                });
-                setTokenClient(client);
-
-                // Check if already logged in (basic check)
-                const token = window.gapi.client.getToken();
-                if (token) setIsAuthenticated(true);
-
+                setGapiReady(true);
             } catch (err) {
-                console.error('❌ Init error:', err);
+                console.error('❌ GAPI Init error:', err);
             }
         };
+        initGapi();
+    }, []);
 
-        init();
-    }, [queryClient]);
+    // IMPOSTA TOKEN QUANDO DISPONIBILE
+    useEffect(() => {
+        if (gapiReady && accessToken) {
+            window.gapi.client.setToken({ access_token: accessToken });
+            queryClient.invalidateQueries(['calendar']);
+        }
+    }, [gapiReady, accessToken, queryClient]);
 
     // QUERY: LISTA CALENDARI
     const { data: availableCalendars = [], isLoading: loadingCalendars } = useQuery({
-        queryKey: ['calendar', 'list', customNames], // Aggiunto customNames alle dipendenze
+        queryKey: ['calendar', 'list', customNames],
         queryFn: async () => {
-            if (!gapi || !isAuthenticated) return [];
-            const response = await gapi.client.calendar.calendarList.list({ minAccessRole: 'reader' });
-            return response.result.items.map(cal => ({
-                id: cal.id,
-                // Usa nome personalizzato se esiste, altrimenti originale
-                name: customNames[cal.id] || cal.summary,
-                originalName: cal.summary,
-                backgroundColor: cal.backgroundColor,
-                primary: cal.primary
-            }));
+            if (!gapiReady || !isAuthenticated) return [];
+            try {
+                const response = await window.gapi.client.calendar.calendarList.list({ minAccessRole: 'reader' });
+                return response.result.items.map(cal => ({
+                    id: cal.id,
+                    name: customNames[cal.id] || cal.summary,
+                    originalName: cal.summary,
+                    backgroundColor: cal.backgroundColor,
+                    primary: cal.primary
+                }));
+            } catch (e) {
+                console.error('Calendar List Error:', e);
+                return [];
+            }
         },
-        enabled: !!gapi && isAuthenticated,
-        staleTime: 1000 * 60 * 60, // 1 ora
+        enabled: gapiReady && isAuthenticated,
+        staleTime: 1000 * 60 * 60,
     });
 
     // QUERY: EVENTI
     const { data: events = [], isLoading: loadingEvents, error } = useQuery({
-        queryKey: ['calendar', 'events', selectedCalendars, customNames], // Aggiunto customNames
+        queryKey: ['calendar', 'events', selectedCalendars, customNames],
         queryFn: async () => {
-            if (!gapi || !isAuthenticated || selectedCalendars.length === 0) return [];
+            if (!gapiReady || !isAuthenticated || selectedCalendars.length === 0) return [];
 
             const now = new Date();
             const endOfWeek = new Date(now);
@@ -131,7 +111,7 @@ export const useGoogleCalendar = () => {
 
             for (const calendarId of selectedCalendars) {
                 try {
-                    const response = await gapi.client.calendar.events.list({
+                    const response = await window.gapi.client.calendar.events.list({
                         calendarId: calendarId,
                         timeMin: now.toISOString(),
                         timeMax: endOfWeek.toISOString(),
@@ -162,23 +142,9 @@ export const useGoogleCalendar = () => {
 
             return allEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
         },
-        enabled: !!gapi && isAuthenticated && selectedCalendars.length > 0,
-        refetchInterval: 1000 * 60 * 5, // Auto-refresh ogni 5 min
+        enabled: gapiReady && isAuthenticated && selectedCalendars.length > 0,
+        refetchInterval: 1000 * 60 * 5,
     });
-
-    const signIn = useCallback(() => {
-        if (tokenClient) tokenClient.requestAccessToken({ prompt: 'consent' });
-    }, [tokenClient]);
-
-    const signOut = useCallback(() => {
-        const token = window.gapi?.client?.getToken();
-        if (token?.access_token) {
-            window.google.accounts.oauth2.revoke(token.access_token, () => { });
-            window.gapi.client.setToken(null);
-        }
-        setIsAuthenticated(false);
-        queryClient.setQueryData(['calendar', 'events'], []);
-    }, [queryClient]);
 
     const toggleCalendar = useCallback((id) => {
         setSelectedCalendars(prev =>
@@ -201,23 +167,49 @@ export const useGoogleCalendar = () => {
             ...prev,
             [id]: name
         }));
-        // Invalida la cache per aggiornare i nomi ovunque
         queryClient.invalidateQueries(['calendar']);
     }, [queryClient]);
 
-    return {
+    const getTodayEvents = useCallback(() => {
+        const now = new Date();
+        const todayStr = now.toDateString();
+        return events.filter(e => new Date(e.start).toDateString() === todayStr);
+    }, [events]);
+
+    const getUpcomingEvents = useCallback(() => {
+        const now = new Date();
+        return events.filter(e => new Date(e.start) > now).slice(0, 5);
+    }, [events]);
+
+    const value = {
         events,
-        loading: loadingEvents || loadingCalendars,
+        loading: loadingEvents || loadingCalendars || authLoading,
         error,
         isAuthenticated,
-        signIn,
-        signOut,
+        signIn: login, // Usa login del hook
+        signOut: logout, // Usa logout del hook
         availableCalendars,
         selectedCalendars,
         toggleCalendar,
         selectAllCalendars,
         selectNoneCalendars,
         setCustomCalendarName,
-        refreshEvents: () => queryClient.invalidateQueries(['calendar', 'events'])
+        refreshEvents: () => queryClient.invalidateQueries(['calendar', 'events']),
+        getTodayEvents,
+        getUpcomingEvents
     };
+
+    return (
+        <GoogleCalendarContext.Provider value={value}>
+            {children}
+        </GoogleCalendarContext.Provider>
+    );
+};
+
+export const useGoogleCalendarContext = () => {
+    const context = useContext(GoogleCalendarContext);
+    if (!context) {
+        throw new Error('useGoogleCalendarContext must be used within a GoogleCalendarProvider');
+    }
+    return context;
 };

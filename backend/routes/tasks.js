@@ -26,13 +26,13 @@ router.get('/', [
       });
     }
 
-    const { 
-      listId, 
-      completed, 
-      priority, 
-      dueDate, 
-      limit = 50, 
-      offset = 0 
+    const {
+      listId,
+      completed,
+      priority,
+      dueDate,
+      limit = 50,
+      offset = 0
     } = req.query;
 
     // Costruisci query dinamica
@@ -177,13 +177,13 @@ router.post('/', [
       });
     }
 
-    const { 
-      listId, 
-      title, 
-      details, 
-      priority = 'medium', 
-      reminder, 
-      dueDate 
+    const {
+      listId,
+      title,
+      details,
+      priority = 'medium',
+      reminder,
+      dueDate
     } = req.body;
 
     console.log('📝 Creating task with data:', {
@@ -233,14 +233,15 @@ router.post('/', [
         position
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING id
     `, [
-      listId, 
-      req.user.userId, 
-      title, 
-      details || null, 
-      priority, 
-      reminder || null, 
-      dueDate || null, 
+      listId,
+      req.user.userId,
+      title,
+      details || null,
+      priority,
+      reminder || null,
+      dueDate || null,
       position
     ]);
 
@@ -248,7 +249,7 @@ router.post('/', [
 
     // Gestisci il caso in cui result.lastID è undefined
     let taskId = result.lastID;
-    
+
     if (!taskId) {
       console.warn('⚠️ lastID is undefined, trying to find task by title and position');
       // Fallback: trova il task appena creato usando title e position
@@ -257,7 +258,7 @@ router.post('/', [
         WHERE list_id = ? AND user_id = ? AND title = ? AND position = ?
         ORDER BY id DESC LIMIT 1
       `, [listId, req.user.userId, title, position]);
-      
+
       if (createdTask) {
         taskId = createdTask.id;
         console.log('✅ Found task ID via fallback method:', taskId);

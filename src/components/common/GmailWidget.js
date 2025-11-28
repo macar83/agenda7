@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { Mail, RefreshCw, LogIn, AlertCircle, ExternalLink, Clock, User, Paperclip, Archive, CheckCircle, Star, Filter } from 'lucide-react';
 
-export const GmailWidget = ({ 
-  emails = [], 
-  loading = false, 
-  error = null, 
-  isAuthenticated = false, 
+export const GmailWidget = ({
+  emails = [],
+  loading = false,
+  error = null,
+  isAuthenticated = false,
   unreadCount = 0,
-  onSignIn, 
+  onSignIn,
   onRefresh,
   formatEmailDate,
   // Nuove props
@@ -15,9 +15,9 @@ export const GmailWidget = ({
   onArchiveEmail,
   labelColors = {}
 }) => {
-  
+
   const [actingOnEmail, setActingOnEmail] = useState(null); // Per loading delle azioni
-  
+
   // 🆕 STATO PER FILTRO CATEGORIE
   const [selectedCategories, setSelectedCategories] = useState([
     'primary', 'promotions', 'social', 'updates', 'forums'
@@ -57,7 +57,7 @@ export const GmailWidget = ({
         icon: '💬'
       }
     };
-    
+
     return categories[category] || categories.primary;
   };
 
@@ -66,7 +66,7 @@ export const GmailWidget = ({
     if (selectedCategories.length === 0) {
       return []; // Nessuna categoria selezionata = nessuna email
     }
-    
+
     return emails.filter(email => {
       const category = email.category || 'primary';
       return selectedCategories.includes(category);
@@ -96,9 +96,9 @@ export const GmailWidget = ({
   // COMPONENTE CATEGORIA
   const renderCategory = (email) => {
     if (email.category === 'primary') return null; // Non mostrare categoria principale
-    
+
     const categoryInfo = getCategoryInfo(email.category);
-    
+
     return (
       <span
         className="inline-flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium"
@@ -153,7 +153,7 @@ export const GmailWidget = ({
       if (match) {
         return match[1].trim().replace(/"/g, '');
       }
-      
+
       // Se è solo l'email, prendi la parte prima della @
       const emailMatch = fromString.match(/^([^@]+)@/);
       return emailMatch ? emailMatch[1] : fromString;
@@ -166,28 +166,28 @@ export const GmailWidget = ({
   const handleMarkAsRead = async (e, messageId) => {
     e.stopPropagation();
     if (!onMarkAsRead) return;
-    
+
     setActingOnEmail(messageId);
     const success = await onMarkAsRead(messageId);
-    
+
     if (success) {
       console.log('✅ Email segnata come letta');
     }
-    
+
     setActingOnEmail(null);
   };
 
   const handleArchive = async (e, messageId) => {
     e.stopPropagation();
     if (!onArchiveEmail) return;
-    
+
     setActingOnEmail(messageId);
     const success = await onArchiveEmail(messageId);
-    
+
     if (success) {
       console.log('✅ Email archiviata');
     }
-    
+
     setActingOnEmail(null);
   };
 
@@ -196,7 +196,7 @@ export const GmailWidget = ({
     const newSelection = selectedCategories.includes(categoryId)
       ? selectedCategories.filter(id => id !== categoryId)
       : [...selectedCategories, categoryId];
-    
+
     console.log('📧 Filtro categorie aggiornato:', newSelection);
     setSelectedCategories(newSelection);
   };
@@ -211,7 +211,7 @@ export const GmailWidget = ({
             <span>Email Gmail</span>
           </h3>
         </div>
-        
+
         <div className="text-center py-8">
           <Mail className="mx-auto text-gray-400 mb-4" size={48} />
           <p className="text-gray-500 mb-4">Accedi a Gmail per vedere le tue email recenti</p>
@@ -240,7 +240,7 @@ export const GmailWidget = ({
             </span>
           )}
         </h3>
-        
+
         <div className="flex items-center space-x-2">
           {/* Indicatore filtro */}
           <div className="flex items-center space-x-1">
@@ -249,16 +249,15 @@ export const GmailWidget = ({
               {filteredEmails.length}/{emails.length}
             </span>
           </div>
-          
+
           {/* Pulsante refresh */}
           <button
             onClick={onRefresh}
             disabled={loading}
-            className={`p-2 rounded-lg transition-colors ${
-              loading 
-                ? 'text-gray-400 cursor-not-allowed' 
+            className={`p-2 rounded-lg transition-colors ${loading
+                ? 'text-gray-400 cursor-not-allowed'
                 : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
-            }`}
+              }`}
             title="Aggiorna email"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -274,18 +273,17 @@ export const GmailWidget = ({
             {Object.entries(emailCounts).map(([categoryId, count]) => {
               const categoryInfo = getCategoryInfo(categoryId);
               const isSelected = selectedCategories.includes(categoryId);
-              
+
               if (count === 0) return null;
-              
+
               return (
                 <button
                   key={categoryId}
                   onClick={() => toggleCategory(categoryId)}
-                  className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    isSelected 
-                      ? 'border-2 shadow-sm transform scale-105' 
+                  className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isSelected
+                      ? 'border-2 shadow-sm transform scale-105'
                       : 'opacity-60 hover:opacity-85 border border-transparent'
-                  }`}
+                    }`}
                   style={{
                     backgroundColor: categoryInfo.bgColor,
                     color: categoryInfo.color,
@@ -301,13 +299,13 @@ export const GmailWidget = ({
               );
             })}
           </div>
-          
+
           {/* Quick actions */}
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
             <div className="text-xs text-gray-500">
-              {selectedCategories.length === 5 ? 'Tutte le categorie' : 
-               selectedCategories.length === 0 ? 'Nessuna categoria selezionata' :
-               `${selectedCategories.length} categorie selezionate`}
+              {selectedCategories.length === 5 ? 'Tutte le categorie' :
+                selectedCategories.length === 0 ? 'Nessuna categoria selezionata' :
+                  `${selectedCategories.length} categorie selezionate`}
             </div>
             <div className="flex space-x-2">
               <button
@@ -337,7 +335,7 @@ export const GmailWidget = ({
         <div className="text-center py-8">
           <AlertCircle className="mx-auto text-red-400 mb-4" size={32} />
           <p className="text-red-600 text-sm mb-2 font-medium">Errore nel caricamento</p>
-          <p className="text-gray-500 text-xs mb-4">{error}</p>
+          <p className="text-gray-500 text-xs mb-4">{typeof error === 'object' ? (error.message || 'Errore sconosciuto') : error}</p>
           <button
             onClick={onRefresh}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition-colors"
@@ -360,13 +358,12 @@ export const GmailWidget = ({
       ) : (
         <div className="space-y-3 max-h-80 overflow-y-auto">
           {filteredEmails.map((email) => (
-            <div 
-              key={email.id} 
-              className={`border rounded-lg p-3 transition-all hover:shadow-sm cursor-pointer group ${
-                email.isUnread 
-                  ? 'bg-blue-50 border-blue-200' 
+            <div
+              key={email.id}
+              className={`border rounded-lg p-3 transition-all hover:shadow-sm cursor-pointer group ${email.isUnread
+                  ? 'bg-blue-50 border-blue-200'
                   : 'bg-white border-gray-200'
-              }`}
+                }`}
               onClick={() => window.open(`https://mail.google.com/mail/#inbox/${email.threadId}`, '_blank')}
             >
               <div className="space-y-2">
@@ -377,15 +374,14 @@ export const GmailWidget = ({
                         {email.isImportant && (
                           <Star size={12} className="text-yellow-500 flex-shrink-0" fill="currentColor" />
                         )}
-                        
-                        <span className={`text-sm truncate ${
-                          email.isUnread 
-                            ? 'font-semibold text-gray-900' 
+
+                        <span className={`text-sm truncate ${email.isUnread
+                            ? 'font-semibold text-gray-900'
                             : 'font-medium text-gray-700'
-                        }`}>
+                          }`}>
                           {extractSenderName(email.from)}
                         </span>
-                        
+
                         {/* Icona allegati */}
                         {email.hasAttachments && (
                           <Paperclip size={12} className="text-gray-500 flex-shrink-0" title="Ha allegati" />
@@ -408,7 +404,7 @@ export const GmailWidget = ({
                             )}
                           </button>
                         )}
-                        
+
                         <button
                           onClick={(e) => handleArchive(e, email.id)}
                           disabled={actingOnEmail === email.id}
@@ -423,13 +419,12 @@ export const GmailWidget = ({
                         </button>
                       </div>
                     </div>
-                    
-                    <h4 className={`text-sm leading-tight mb-1 ${
-                      email.isUnread ? 'font-semibold text-gray-900' : 'font-medium text-gray-800'
-                    }`}>
+
+                    <h4 className={`text-sm leading-tight mb-1 ${email.isUnread ? 'font-semibold text-gray-900' : 'font-medium text-gray-800'
+                      }`}>
                       {email.subject}
                     </h4>
-                    
+
                     {email.snippet && (
                       <p className="text-xs text-gray-600 line-clamp-2 mb-2">
                         {email.snippet}
@@ -441,13 +436,13 @@ export const GmailWidget = ({
                       {renderCategory(email)}
                       {renderCustomLabels(email)}
                     </div>
-                    
+
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center space-x-2 text-xs text-gray-500">
                         <Clock size={10} />
                         <span>{formatEmailDate(email.date)}</span>
                       </div>
-                      
+
                       <ExternalLink size={12} className="text-gray-400 hover:text-red-600" />
                     </div>
                   </div>

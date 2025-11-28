@@ -4,6 +4,9 @@ import { AlertCircle, X, Bell } from 'lucide-react';
 import { RealAuthProvider } from './contexts/RealAuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { AppContextProvider, useAppContext } from './contexts/AppContext';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
+import { GoogleCalendarProvider } from './contexts/GoogleCalendarContext';
 import { useNotifications } from './hooks/useNotifications';
 
 // Import dei componenti esistenti
@@ -13,11 +16,14 @@ import { Overview } from './components/views/Overview';
 import { ListsView } from './components/views/ListsView';
 import { StatsView } from './components/views/StatsView';
 import { NotificationSettings } from './components/common/NotificationSettings';
+import { Planner } from './components/views/Planner';
+import { Profile } from './components/views/Profile';
+import { Settings } from './components/views/Settings';
 
 // Main App Component content (usa il context adattato)
 const AppWithRealAuthContent = () => {
   const { data, clearError, updateData } = useAppContext();
-  
+
   // 🔔 Hook notifiche
   const notifications = useNotifications();
 
@@ -26,13 +32,13 @@ const AppWithRealAuthContent = () => {
     if (notifications.isEnabled && data.lists && data.lists.length > 0) {
       console.log('🔔 Avvio controllo notifiche task con', data.lists.length, 'liste');
       notifications.startPeriodicCheck(data.lists, 1); // Controlla ogni minuto
-      
+
       return () => {
         notifications.stopPeriodicCheck();
       };
     }
   }, [
-    notifications.isEnabled, 
+    notifications.isEnabled,
     data.lists
   ]);
 
@@ -61,11 +67,14 @@ const AppWithRealAuthContent = () => {
 
   const renderContent = () => {
     console.log('🎬 Rendering content for view:', data.currentView);
-    
+
     switch (data.currentView) {
       case 'overview':
         console.log('📊 Rendering Overview');
         return <Overview />;
+      case 'planner':
+        console.log('📅 Rendering Planner');
+        return <Planner />;
       case 'lists':
         console.log('📋 Rendering Lists');
         return <ListsView />;
@@ -80,7 +89,7 @@ const AppWithRealAuthContent = () => {
               <h1 className="text-2xl font-bold text-gray-900">Impostazioni Notifiche</h1>
               <p className="text-gray-600">Gestisci le notifiche per i tuoi task</p>
             </div>
-            
+
             <NotificationSettings
               isSupported={notifications.isSupported}
               permission={notifications.permission}
@@ -129,24 +138,10 @@ const AppWithRealAuthContent = () => {
         );
       case 'profile':
         console.log('👤 Rendering Profile');
-        return (
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Profilo Utente</h1>
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <p className="text-gray-600">Sezione profilo in arrivo...</p>
-            </div>
-          </div>
-        );
+        return <Profile />;
       case 'settings':
         console.log('⚙️ Rendering Settings');
-        return (
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Impostazioni</h1>
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <p className="text-gray-600">Sezione impostazioni in arrivo...</p>
-            </div>
-          </div>
-        );
+        return <Settings />;
       case 'help':
         console.log('❓ Rendering Help');
         return (
@@ -179,40 +174,40 @@ const AppWithRealAuthContent = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
-      
+
       {/* 🔔 Banner informativo per notifiche (mostra solo se non abilitate) */}
-      {notifications.isSupported && 
-       !notifications.isEnabled && 
-       data.currentView !== 'notifications' && (
-        <div className="bg-blue-50 border-b border-blue-200 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Bell className="text-blue-600" size={16} />
-              <span className="text-sm text-blue-800">
-                Abilita le notifiche per essere avvisato quando i tuoi task scadono
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => {
-                  console.log('🎯 Banner click - navigazione a notifiche');
-                  updateData({ currentView: 'notifications' });
-                }}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Impostazioni
-              </button>
-              <button
-                onClick={handleRequestNotifications}
-                className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
-              >
-                Abilita
-              </button>
+      {notifications.isSupported &&
+        !notifications.isEnabled &&
+        data.currentView !== 'notifications' && (
+          <div className="bg-blue-50 border-b border-blue-200 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Bell className="text-blue-600" size={16} />
+                <span className="text-sm text-blue-800">
+                  Abilita le notifiche per essere avvisato quando i tuoi task scadono
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    console.log('🎯 Banner click - navigazione a notifiche');
+                    updateData({ currentView: 'notifications' });
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Impostazioni
+                </button>
+                <button
+                  onClick={handleRequestNotifications}
+                  className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+                >
+                  Abilita
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      
+        )}
+
       {/* Error Banner */}
       {data.error && (
         <div className="bg-red-50 border-l-4 border-red-400 p-4">
@@ -249,7 +244,7 @@ const AppWithRealAuthContent = () => {
               </div>
             </div>
           )}
-          
+
           {/* Content */}
           {renderContent()}
         </main>
@@ -263,9 +258,13 @@ const AppWithRealAuth = () => {
   return (
     <RealAuthProvider>
       <ProtectedRoute>
-        <AppContextProvider>
-          <AppWithRealAuthContent />
-        </AppContextProvider>
+        <QueryClientProvider client={queryClient}>
+          <GoogleCalendarProvider>
+            <AppContextProvider>
+              <AppWithRealAuthContent />
+            </AppContextProvider>
+          </GoogleCalendarProvider>
+        </QueryClientProvider>
       </ProtectedRoute>
     </RealAuthProvider>
   );
