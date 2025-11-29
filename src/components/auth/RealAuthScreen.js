@@ -1,7 +1,8 @@
 // src/components/auth/RealAuthScreen.jsx
 import React, { useState } from 'react';
 import { useRealAuthContext } from '../../contexts/RealAuthContext';
-import { Eye, EyeOff, Mail, Lock, User, Loader } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Loader, Activity, CheckCircle, XCircle } from 'lucide-react';
+import { realApiClient } from '../../services/realApiClient';
 
 export const RealAuthScreen = () => {
   const { login, register, isLoading, error, clearError } = useRealAuthContext();
@@ -15,6 +16,10 @@ export const RealAuthScreen = () => {
     confirmPassword: ''
   });
   const [formErrors, setFormErrors] = useState({});
+
+  // Debug State
+  const [debugStatus, setDebugStatus] = useState(null); // 'loading', 'success', 'error'
+  const [debugInfo, setDebugInfo] = useState(null);
 
   const validateForm = () => {
     const errors = {};
@@ -107,6 +112,39 @@ export const RealAuthScreen = () => {
     setShowConfirmPassword(false);
   };
 
+  const testConnection = async () => {
+    setDebugStatus('loading');
+    setDebugInfo(null);
+
+    try {
+      const startTime = Date.now();
+      const result = await realApiClient.testConnection();
+      const endTime = Date.now();
+
+      if (result.status === 'OK') {
+        setDebugStatus('success');
+        setDebugInfo({
+          latency: endTime - startTime,
+          version: result.version,
+          timestamp: result.timestamp,
+          url: realApiClient.baseURL
+        });
+      } else {
+        setDebugStatus('error');
+        setDebugInfo({
+          error: result.error || 'Unknown error',
+          url: realApiClient.baseURL
+        });
+      }
+    } catch (err) {
+      setDebugStatus('error');
+      setDebugInfo({
+        error: err.message,
+        url: realApiClient.baseURL
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
@@ -146,9 +184,8 @@ export const RealAuthScreen = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      formErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${formErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
                     placeholder="Il tuo nome completo"
                     disabled={isLoading}
                   />
@@ -173,9 +210,8 @@ export const RealAuthScreen = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                    formErrors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${formErrors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                   placeholder="tua@email.com"
                   disabled={isLoading}
                   autoComplete="email"
@@ -200,9 +236,8 @@ export const RealAuthScreen = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                    formErrors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${formErrors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                   placeholder="La tua password"
                   disabled={isLoading}
                   autoComplete={isLogin ? 'current-password' : 'new-password'}
@@ -236,9 +271,8 @@ export const RealAuthScreen = () => {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      formErrors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                    }`}
+                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${formErrors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
                     placeholder="Ripeti la password"
                     disabled={isLoading}
                     autoComplete="new-password"
@@ -265,11 +299,10 @@ export const RealAuthScreen = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
-                isLoading
+              className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${isLoading
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] active:scale-[0.98]'
-              }`}
+                }`}
             >
               {isLoading ? (
                 <>
@@ -291,6 +324,54 @@ export const RealAuthScreen = () => {
             >
               {isLogin ? 'Non hai un account? Registrati' : 'Hai già un account? Accedi'}
             </button>
+          </div>
+
+          {/* Debug Connection Button */}
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <button
+              onClick={testConnection}
+              disabled={debugStatus === 'loading'}
+              className="w-full flex items-center justify-center space-x-2 text-xs text-gray-500 hover:text-gray-700 transition-colors p-2 rounded hover:bg-gray-50"
+            >
+              <Activity size={14} />
+              <span>Test Connessione Server</span>
+            </button>
+
+            {debugStatus && (
+              <div className={`mt-3 p-3 rounded text-xs font-mono break-all ${debugStatus === 'success' ? 'bg-green-50 text-green-800' :
+                  debugStatus === 'error' ? 'bg-red-50 text-red-800' : 'bg-gray-50 text-gray-800'
+                }`}>
+                {debugStatus === 'loading' && (
+                  <div className="flex items-center space-x-2">
+                    <Loader size={12} className="animate-spin" />
+                    <span>Test in corso...</span>
+                  </div>
+                )}
+
+                {debugStatus === 'success' && (
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-1 font-bold">
+                      <CheckCircle size={12} />
+                      <span>Connessione OK!</span>
+                    </div>
+                    <div>Latency: {debugInfo.latency}ms</div>
+                    <div>Version: {debugInfo.version}</div>
+                    <div>URL: {debugInfo.url}</div>
+                  </div>
+                )}
+
+                {debugStatus === 'error' && (
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-1 font-bold">
+                      <XCircle size={12} />
+                      <span>Errore Connessione</span>
+                    </div>
+                    <div>Error: {debugInfo.error}</div>
+                    <div>URL: {debugInfo.url}</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Demo Info */}
