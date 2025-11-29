@@ -21,6 +21,9 @@ const statsRoutes = require('./routes/stats');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Vercel è dietro un proxy, quindi dobbiamo fidarci del primo proxy per il rate limiting
+app.set('trust proxy', 1);
+
 // Middleware di sicurezza
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
