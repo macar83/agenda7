@@ -19,6 +19,7 @@ router.post('/register', [
   body('name').trim().isLength({ min: 2, max: 100 }),
   body('password').isLength({ min: 6 })
 ], async (req, res) => {
+  console.log('📝 Register request received:', req.body.email);
   try {
     // Validazione input
     const errors = validationResult(req);

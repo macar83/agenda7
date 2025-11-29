@@ -76,9 +76,25 @@ app.use('/api/auth/verify', authVerifyLimiter);
 app.use(compression());
 app.use(morgan('combined'));
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? (process.env.FRONTEND_URL || '*') // Fallback a * se FRONTEND_URL non è definito
-    : ['http://localhost:3000', 'http://localhost:3001'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow localhost in development
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    // Production: Allow Vercel domains and configured FRONTEND_URL
+    const allowedOrigin = process.env.FRONTEND_URL;
+    if ((allowedOrigin && origin === allowedOrigin) || origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+
+    // Fallback: Log blocked origin but allow it for now to debug (remove in strict prod)
+    console.log('⚠️ CORS: Allowing unknown origin:', origin);
+    return callback(null, true);
+  },
   credentials: true
 }));
 
