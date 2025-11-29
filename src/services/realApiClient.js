@@ -1,5 +1,7 @@
 // src/services/realApiClient.js
-const API_BASE_URL = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:5001/api');
+// Determine API URL based on current hostname
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE_URL = isLocalhost ? 'http://localhost:5001/api' : '/api';
 
 class RealApiClient {
   constructor() {
