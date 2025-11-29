@@ -300,8 +300,8 @@ export const RealAuthScreen = () => {
               type="submit"
               disabled={isLoading}
               className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${isLoading
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] active:scale-[0.98]'
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] active:scale-[0.98]'
                 }`}
             >
               {isLoading ? (
@@ -339,7 +339,7 @@ export const RealAuthScreen = () => {
 
             {debugStatus && (
               <div className={`mt-3 p-3 rounded text-xs font-mono break-all ${debugStatus === 'success' ? 'bg-green-50 text-green-800' :
-                  debugStatus === 'error' ? 'bg-red-50 text-red-800' : 'bg-gray-50 text-gray-800'
+                debugStatus === 'error' ? 'bg-red-50 text-red-800' : 'bg-gray-50 text-gray-800'
                 }`}>
                 {debugStatus === 'loading' && (
                   <div className="flex items-center space-x-2">

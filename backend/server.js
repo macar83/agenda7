@@ -21,6 +21,13 @@ const statsRoutes = require('./routes/stats');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// LOGGING RADICALE: Logga ogni richiesta appena arriva
+app.use((req, res, next) => {
+  console.log(`🔍 INCOMING: ${req.method} ${req.url}`);
+  console.log('   Headers:', JSON.stringify(req.headers));
+  next();
+});
+
 // Vercel è dietro un proxy, quindi dobbiamo fidarci del primo proxy per il rate limiting
 app.set('trust proxy', 1);
 
