@@ -71,7 +71,7 @@ app.use(compression());
 app.use(morgan('combined'));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? process.env.FRONTEND_URL
+    ? (process.env.FRONTEND_URL || '*') // Fallback a * se FRONTEND_URL non è definito
     : ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true
 }));
