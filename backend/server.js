@@ -6,7 +6,10 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const { initDatabase } = require('./config/database');
+const { initDatabase, getOne } = require('./config/database');
+// ... (imports)
+
+
 const authRoutes = require('./routes/auth');
 const googleAuthRoutes = require('./routes/googleAuth'); // Nuova rotta
 const userRoutes = require('./routes/users');
@@ -96,12 +99,26 @@ app.use(session({
 }));
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0'
-  });
+// Health check con verifica DB
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test connessione DB leggero
+    const dbResult = await getOne('SELECT NOW()');
+
+    res.json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      version: process.env.npm_package_version || '1.0.0',
+      database: 'connected',
+      db_time: dbResult.now
+    });
+  } catch (error) {
+    console.error('❌ Health Check DB Error:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      error: 'Database connection failed: ' + error.message
+    });
+  }
 });
 
 // Routes API
