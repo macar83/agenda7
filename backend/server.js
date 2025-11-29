@@ -159,8 +159,15 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     console.log('🔧 Initializing database...');
-    await initDatabase();
-    console.log('✅ Database initialized');
+
+    // Su Vercel/Production, evita di inizializzare il DB ad ogni avvio per performance e stabilità
+    // Esegui solo se esplicitamente richiesto o in sviluppo
+    if (process.env.NODE_ENV !== 'production' || process.env.INIT_DB === 'true') {
+      await initDatabase();
+      console.log('✅ Database initialized');
+    } else {
+      console.log('ℹ️ Skipping database initialization in production (set INIT_DB=true to run)');
+    }
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

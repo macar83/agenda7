@@ -8,6 +8,12 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
+// Gestione errori idle client per evitare crash su Vercel
+pool.on('error', (err, client) => {
+  console.error('❌ Unexpected error on idle client', err);
+  // Non uscire dal processo in serverless environment
+});
+
 const SCHEMA_PATH = path.join(__dirname, '..', 'database.sql');
 
 // Helper per convertire query SQLite (?) in PostgreSQL ($1, $2, ...)
