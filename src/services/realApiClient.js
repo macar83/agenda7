@@ -298,8 +298,7 @@ class RealApiClient {
 
   async testConnection() {
     try {
-      const response = await fetch(`${this.baseURL.replace('/api', '')}/health`);
-      return await response.json();
+      return await this.request('/health');
     } catch (error) {
       console.error('❌ Connection test failed:', error);
       return { status: 'ERROR', error: error.message };
